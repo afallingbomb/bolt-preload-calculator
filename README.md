@@ -1,5 +1,7 @@
 # Bolt Preload & Joint Analysis Calculator
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://bolt-preload-calculator-g6wrqlutxwitcsaygyj6dw.streamlit.app/)
+
 A Streamlit web application for analysing bolted joints in **metric or imperial**
 units: recommended preload, tightening torque, joint constant ($C$), thermal
 load, fatigue life, joint separation, thread stripping and **eccentric

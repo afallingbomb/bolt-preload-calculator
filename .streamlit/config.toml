@@ -1,0 +1,11 @@
+[theme]
+# Refined dark "engineering instrument" palette. This themes every Streamlit
+# widget (inputs, menus, data editor, tables, charts) consistently -- style.css
+# only refines on top of it. It also makes Streamlit's native Altair theming
+# render the charts on a matching dark surface automatically.
+base = "dark"
+primaryColor = "#38bdf8"
+backgroundColor = "#0f172a"
+secondaryBackgroundColor = "#1e293b"
+textColor = "#e2e8f0"
+font = "sans serif"

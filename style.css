@@ -1,0 +1,159 @@
+/* ============================================================================
+   Bolt Preload & Joint Analysis  --  "Engineering Instrument" theme
+   Refined dark UI. Pairs with .streamlit/config.toml (base = "dark"), which
+   themes the widgets themselves; this file only refines the surface and adds
+   the custom verdict-banner and safety-card components.
+   ============================================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --card:      rgba(148, 163, 184, 0.06);
+  --card-brd:  rgba(148, 163, 184, 0.16);
+  --txt:       #e2e8f0;
+  --muted:     #94a3b8;
+  --accent:    #38bdf8;
+  --accent-2:  #818cf8;
+  --ok:   #22c55e;  --ok-t:   #4ade80;
+  --warn: #f59e0b;  --warn-t: #d97706;
+  --bad:  #ef4444;  --bad-t:  #f87171;
+}
+
+/* ---- Base surface --------------------------------------------------------- */
+.stApp {
+  background:
+    radial-gradient(1100px 560px at 12% -12%, #16263f 0%, rgba(22, 38, 63, 0) 55%),
+    linear-gradient(135deg, #0b1220 0%, #0f172a 60%, #111c33 100%);
+  color: var(--txt);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Sidebar toggle chevron z-index fix */
+[data-testid="stSidebarCollapsedControl"] { z-index: 999999; }
+footer { visibility: hidden; }
+.block-container { padding-top: 1.6rem !important; max-width: 1500px; }
+
+/* ---- Typography ----------------------------------------------------------- */
+h2, h3, h4 { color: var(--txt); font-weight: 650; letter-spacing: -0.01em; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.08rem; }
+hr { border-color: var(--card-brd); margin: 1rem 0; }
+
+/* ---- Hero ----------------------------------------------------------------- */
+.app-hero { display: flex; align-items: center; gap: 1rem; padding: 0.3rem 0 1rem; }
+.app-hero .hero-icon {
+  font-size: 2.1rem; line-height: 1; width: 58px; height: 58px; flex: 0 0 58px;
+  display: grid; place-items: center; border-radius: 16px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.18), rgba(129, 140, 248, 0.18));
+  border: 1px solid var(--card-brd);
+}
+.app-hero .hero-title {
+  margin: 0; font-size: 2rem; font-weight: 800; letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2) 70%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.app-hero .hero-sub { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.95rem; max-width: 78ch; }
+
+/* ---- Sidebar -------------------------------------------------------------- */
+[data-testid="stSidebar"] {
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-right: 1px solid var(--card-brd);
+}
+[data-testid="stSidebar"] h2 {
+  font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--muted); font-weight: 700;
+}
+
+/* ---- Metric cards (st.metric) -------------------------------------------- */
+[data-testid="stMetric"] {
+  background: var(--card); border: 1px solid var(--card-brd);
+  border-radius: 14px; padding: 1rem 1.1rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;   /* no transform -> no layout shift */
+}
+[data-testid="stMetric"]:hover {
+  border-color: rgba(56, 189, 248, 0.5);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+[data-testid="stMetricValue"] {
+  color: #f8fafc !important; font-size: 1.5rem !important;
+  font-weight: 700 !important; letter-spacing: -0.01em;
+  white-space: normal; line-height: 1.15;          /* wrap the unit instead of truncating long values */
+}
+[data-testid="stMetricLabel"] { color: var(--muted) !important; }
+[data-testid="stMetricLabel"] p {
+  font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.05em;
+}
+
+/* ---- Verdict banner ------------------------------------------------------- */
+.verdict {
+  display: flex; align-items: center; gap: 1rem;
+  border-radius: 16px; padding: 1rem 1.25rem; margin: 0.2rem 0 1rem;
+  border: 1px solid var(--card-brd);
+}
+.verdict .v-icon {
+  width: 46px; height: 46px; flex: 0 0 46px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 1.5rem; font-weight: 800; color: #0b1220;
+}
+.verdict .v-body { flex: 1 1 auto; }
+.verdict .v-title { font-size: 1.25rem; font-weight: 800; letter-spacing: 0.02em; }
+.verdict .v-sub { color: var(--muted); font-size: 0.9rem; margin-top: 0.1rem; }
+.verdict .v-fos { display: flex; flex-direction: column; align-items: flex-end; line-height: 1; }
+.verdict .v-num { font-size: 1.9rem; font-weight: 800; }
+.verdict .v-cap {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); margin-top: 0.2rem;
+}
+.verdict-pass { background: linear-gradient(90deg, rgba(34, 197, 94, 0.14), rgba(34, 197, 94, 0.02)); }
+.verdict-pass .v-icon { background: var(--ok); }
+.verdict-pass .v-title, .verdict-pass .v-num { color: var(--ok-t); }
+.verdict-marginal { background: linear-gradient(90deg, rgba(245, 158, 11, 0.14), rgba(245, 158, 11, 0.02)); }
+.verdict-marginal .v-icon { background: var(--warn); }
+.verdict-marginal .v-title, .verdict-marginal .v-num { color: var(--warn-t); }
+.verdict-fail { background: linear-gradient(90deg, rgba(239, 68, 68, 0.16), rgba(239, 68, 68, 0.02)); }
+.verdict-fail .v-icon { background: var(--bad); }
+.verdict-fail .v-title, .verdict-fail .v-num { color: var(--bad-t); }
+
+/* ---- Colour-coded safety cards ------------------------------------------- */
+.stat-card {
+  background: var(--card); border: 1px solid var(--card-brd);
+  border-left: 4px solid var(--muted); border-radius: 12px;
+  padding: 0.8rem 1rem; min-height: 104px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.stat-card .sc-lbl {
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--muted); margin-bottom: 0.25rem;
+}
+.stat-card .sc-val { font-size: 1.8rem; font-weight: 750; line-height: 1.05; color: #f1f5f9; }
+.stat-card .sc-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.2rem; }
+.stat-card.sc-ok   { border-left-color: var(--ok); }   .stat-card.sc-ok .sc-val   { color: var(--ok-t); }
+.stat-card.sc-warn { border-left-color: var(--warn); } .stat-card.sc-warn .sc-val { color: var(--warn-t); }
+.stat-card.sc-bad  { border-left-color: var(--bad); }  .stat-card.sc-bad .sc-val  { color: var(--bad-t); }
+.stat-card.sc-na   { border-left-color: var(--card-brd); }
+.stat-card.sc-na .sc-val { color: var(--muted); font-size: 1.3rem; }
+
+/* ---- Tabs ----------------------------------------------------------------- */
+[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 0.25rem; border-bottom: 1px solid var(--card-brd); }
+[data-testid="stTabs"] [data-baseweb="tab"] {
+  border-radius: 10px 10px 0 0; padding: 0.4rem 0.9rem; color: var(--muted);
+}
+[data-testid="stTabs"] [aria-selected="true"] { color: var(--accent) !important; background: rgba(56, 189, 248, 0.08); }
+
+/* ---- Inputs / buttons / containers --------------------------------------- */
+.stSelectbox div[data-baseweb="select"] > div,
+.stNumberInput input, .stTextInput input { border-radius: 9px !important; }
+
+.stDownloadButton button, .stButton button {
+  border-radius: 10px; border: 1px solid var(--card-brd); font-weight: 600;
+  transition: border-color 0.2s ease, transform 0.05s ease;
+}
+.stDownloadButton button:hover, .stButton button:hover { border-color: var(--accent); }
+.stButton button:active, .stDownloadButton button:active { transform: translateY(1px); }
+
+/* Alerts: keep Streamlit's semantic colours (success/info/warn/error) -- only soften the shape. */
+.stAlert, [data-testid="stAlert"] { border-radius: 12px; }
+
+[data-testid="stExpander"] {
+  border: 1px solid var(--card-brd); border-radius: 12px; background: rgba(148, 163, 184, 0.03);
+}
+[data-testid="stDataFrame"], [data-testid="stTable"] { border-radius: 10px; overflow: hidden; }

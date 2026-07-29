@@ -1,0 +1,11 @@
+# Exact, known-good versions for reproducible installs/deploys. Use with:
+#   pip install -r requirements.txt -c constraints.txt
+# requirements.txt keeps looser ranges for development; this file pins the set the
+# app is actually tested against so a redeploy can't silently pull an incompatible
+# release (Streamlit, Altair, pandas and numpy shift their APIs often).
+streamlit==1.58.0
+pandas==3.0.3
+altair==6.2.1
+matplotlib==3.11.0
+reportlab==4.5.1
+numpy==2.4.6

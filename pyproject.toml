@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bolt-preload-calculator"
+version = "1.0.0"
+description = "Streamlit calculator for bolted-joint preload, stiffness, fatigue, bolt-group and FE analysis"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+dependencies = [
+    "streamlit>=1.43.0,<2",
+    "matplotlib>=3.9.0,<4",
+    "reportlab>=4.0.0,<5",
+    "pandas>=2.0.0,<4",
+    "altair>=5.0.0,<7",
+    "numpy>=2.0.0,<3",
+]
+
+# Dev tools as a uv/PEP-735 group: `uv sync` installs them; `uv sync --no-dev` skips.
+[dependency-groups]
+dev = ["pytest>=8.0.0", "pytest-cov>=4.1.0", "flake8>=7.0.0", "mypy>=1.8.0"]
+
+[tool.uv]
+# This is a runnable Streamlit application, not a library: install the dependencies
+# but do not build/install the project itself.
+package = false
+
+# Tooling (flake8, mypy) is configured in setup.cfg; pytest/coverage read this file
+# only for the project metadata above.
+[tool.setuptools]
+py-modules = ["app", "mechanics", "analysis", "charts", "project_io", "fe_import",
+              "report", "theory", "version"]
+
+[tool.pytest.ini_options]
+# Put the project root on sys.path so the top-level modules import under any runner
+# (plain `python -m pytest`, `uv run pytest`, IDEs, ...).
+pythonpath = ["."]

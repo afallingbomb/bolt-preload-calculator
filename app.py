@@ -23,6 +23,7 @@ from mechanics import (
     grip_thread_engagement, bolt_hardware_reference, recommend_bolt,
     clamp_load_budget, combined_tension_shear_fos,
     thread_series_options, thread_designation,
+    exact_tightening_torque
 )
 from report import build_pdf_report, build_theory_pdf
 from theory import THEORY_BLOCKS, THEORY_TITLE
@@ -1152,7 +1153,44 @@ try:
 
             st.caption(f"Based on a bolt yield strength of {Sy_MPa:,.0f} MPa and tensile stress area of {At:,.1f} mm².")
 
-        # 3) Angle (turn-of-nut) control
+        # 3) Exact Torque-Tension Relationship
+        with st.expander("⚙️ Exact Torque-Tension Relationship"):
+            st.markdown("Calculate the exact tightening torque using Shigley's power-screw formulas (Eq. 8-1/8-2), "
+                        "accounting for pitch diameter and independent friction coefficients.")
+            
+            c1, c2, c3 = st.columns(3)
+            ft = c1.number_input("Thread Friction (μt)", min_value=0.01, max_value=0.50, value=0.15, step=0.01)
+            fc = c2.number_input("Collar Friction (μc)", min_value=0.01, max_value=0.50, value=0.15, step=0.01)
+            
+            # Default collar diameter: (clearance + hex_af) / 2
+            hw = bolt_hardware_reference(bolt_size, d_mm, p_mm)
+            d_clear = hw.get("clearance", d_mm * 1.1)
+            d_hex = hw.get("hex_af", d_mm * 1.5)
+            dc_default = float(round((d_clear + d_hex) / 2.0, 2))
+            
+            # Convert to display units
+            dc_default_disp = float(round(dc_default * out_length_factor, 2))
+            
+            dc_in = c3.number_input(f"Collar Dia. dc ({len_unit})", min_value=float(round(d_mm * out_length_factor, 2)), 
+                                    value=dc_default_disp, step=0.1, key="tool_exact_dc")
+            dc_mm = dc_in / out_length_factor if out_length_factor else dc_in
+            
+            target_F_disp = st.number_input("Target Preload", min_value=0.0, 
+                                            value=float(results['recommended_preload_N']) * out_force_factor, 
+                                            step=1000.0, key="tool_exact_targetF")
+            target_F_N = target_F_disp / out_force_factor if out_force_factor else target_F_disp
+            
+            total_Nm, thread_Nm, collar_Nm, equiv_K = exact_tightening_torque(target_F_N, d_mm, p_mm, ft, fc, dc_mm)
+            
+            st.markdown("#### Results")
+            r1, r2, r3 = st.columns(3)
+            r1.metric("Total Torque", f"{total_Nm * out_torque_factor:,.1f} {torque_unit}")
+            r2.metric("Thread Torque", f"{thread_Nm * out_torque_factor:,.1f} {torque_unit}")
+            r3.metric("Collar Torque", f"{collar_Nm * out_torque_factor:,.1f} {torque_unit}")
+            
+            st.caption(f"Equivalent Nut Factor **K = {equiv_K:.3f}** (compare against the simplified K = {K_nut:.2f})")
+
+        # 4) Angle (turn-of-nut) control
         with st.expander("📐 Angle control (turn-of-nut)"):
             st.markdown("Rotation beyond snug to reach the target preload, from the joint's elastic "
                         "stiffness (§17).")

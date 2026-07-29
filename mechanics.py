@@ -1047,6 +1047,60 @@ def preload_from_torque(applied_torque_Nm: float, nut_factor: float, d: float) -
     return applied_torque_Nm * 1000.0 / (nut_factor * d)
 
 
+def exact_tightening_torque(preload_N: float, d_mm: float, p_mm: float, ft: float, fc: float, dc_mm: float) -> Tuple[float, float, float, float]:
+    """Calculate the exact theoretical tightening torque required to raise a load (preload) 
+    using Shigley's power-screw formulas (Eq. 8-1/8-2).
+    
+    Args:
+        preload_N: Target preload force in Newtons.
+        d_mm: Nominal bolt diameter in mm.
+        p_mm: Thread pitch (lead for single-start) in mm.
+        ft: Thread friction coefficient.
+        fc: Collar/head friction coefficient.
+        dc_mm: Effective collar friction diameter in mm.
+        
+    Returns:
+        (total_torque_Nm, thread_torque_Nm, collar_torque_Nm, equivalent_K)
+    """
+    if d_mm <= 0.0 or preload_N == 0.0:
+        return 0.0, 0.0, 0.0, 0.0
+        
+    # Pitch diameter (ISO 60-degree threads)
+    dp_mm = d_mm - 0.649519 * p_mm
+    
+    # Lead is pitch for single-start threads
+    l_mm = p_mm
+    
+    # Thread half-angle alpha is 30 deg for standard metric/UN threads
+    # sec(30 deg) = 1 / cos(30 deg)
+    sec_alpha = 1.154700538
+    
+    # Thread torque (N*mm)
+    num = l_mm + math.pi * ft * dp_mm * sec_alpha
+    den = math.pi * dp_mm - ft * l_mm * sec_alpha
+    
+    # Protect against denominator crossing zero
+    if den <= 0.0:
+        den = 1e-9
+        
+    T_thread_Nmm = (preload_N * dp_mm / 2.0) * (num / den)
+    
+    # Collar torque (N*mm)
+    T_collar_Nmm = (preload_N * fc * dc_mm) / 2.0
+    
+    total_Nmm = T_thread_Nmm + T_collar_Nmm
+    
+    total_Nm = total_Nmm / 1000.0
+    thread_Nm = T_thread_Nmm / 1000.0
+    collar_Nm = T_collar_Nmm / 1000.0
+    
+    # Equivalent nut factor K
+    d_m = d_mm / 1000.0
+    equiv_K = total_Nm / (preload_N * d_m) if (preload_N > 0 and d_m > 0) else 0.0
+    
+    return total_Nm, thread_Nm, collar_Nm, equiv_K
+
+
 def tightening_angle(preload: float, kb: float, km: float, p: float,
                      snug_preload: float = 0.0) -> float:
     """Nut rotation (degrees) past the snug point to develop ``preload`` (N).

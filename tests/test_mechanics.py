@@ -877,3 +877,41 @@ def test_combined_tension_shear_fos():
     assert fos == pytest.approx(2.0 ** 0.5, rel=1e-3)
     # No load -> unbounded.
     assert combined_tension_shear_fos(0.0, 0.0, At, Sp, Sy) == float('inf')
+
+
+def test_exact_tightening_torque():
+    from mechanics import exact_tightening_torque
+    
+    # Degenerate input
+    total, thread, collar, K = exact_tightening_torque(0.0, 10.0, 1.5, 0.15, 0.15, 12.0)
+    assert total == 0.0
+    
+    total, thread, collar, K = exact_tightening_torque(10000.0, 0.0, 1.5, 0.15, 0.15, 12.0)
+    assert total == 0.0
+    
+    # Typical M10 x 1.5 coarse thread tightened to 20,000 N
+    # d = 10, p = 1.5, ft = 0.15, fc = 0.15, dc = 12.5
+    # Shigley typically expects K roughly 0.20 for standard friction
+    target_F = 20000.0
+    d = 10.0
+    p = 1.5
+    ft = 0.15
+    fc = 0.15
+    dc = 12.5
+    
+    total_Nm, thread_Nm, collar_Nm, equiv_K = exact_tightening_torque(target_F, d, p, ft, fc, dc)
+    
+    # Check physical constraints: total = thread + collar
+    assert total_Nm == pytest.approx(thread_Nm + collar_Nm)
+    
+    # K should be around 0.19 to 0.21
+    assert 0.18 < equiv_K < 0.22
+    
+    # T = K F d
+    assert total_Nm == pytest.approx(equiv_K * target_F * (d / 1000.0))
+    
+    # Higher friction -> higher torque, higher K
+    total_Nm2, thread_Nm2, collar_Nm2, K2 = exact_tightening_torque(target_F, d, p, 0.25, 0.25, dc)
+    assert total_Nm2 > total_Nm
+    assert K2 > equiv_K
+

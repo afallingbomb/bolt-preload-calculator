@@ -375,7 +375,26 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         scatter.
         """),
     ("md", r"""
-        ### 17. Angle (Turn-of-Nut) Control (Fastener Tools)
+        ### 17. Exact Torque-Tension Relationship (Shigley)
+        
+        To avoid the bundled approximation of the nut factor $K$, the exact theoretical torque $T$ required 
+        to raise a load (preload) is calculated using Shigley's power-screw mechanics, summing the thread 
+        torque and the collar torque:
+        """),
+    ("eq", r"T = \frac{F_i \cdot d_p}{2} \left( \frac{l + \pi f_t d_p \sec\alpha}{\pi d_p - f_t l \sec\alpha} \right) + \frac{F_i \cdot f_c \cdot d_c}{2}"),
+    ("md", r"""
+        Where:
+        - $F_i$ is the target preload force
+        - $d_p = d - 0.649519 \cdot p$ is the pitch diameter (for standard $60^\circ$ threads)
+        - $l = p$ is the thread lead (equal to pitch for single-start fasteners)
+        - $\alpha = 30^\circ$ is the thread half-angle ($\sec 30^\circ \approx 1.1547$)
+        - $f_t$ and $f_c$ are the independent thread and collar friction coefficients
+        - $d_c$ is the effective collar bearing diameter (typically averaged from clearance and hex across-flats)
+        
+        This formulation allows direct comparison of the separated friction components against the simplified nut factor equation.
+        """),
+    ("md", r"""
+        ### 18. Angle (Turn-of-Nut) Control (Fastener Tools)
 
         Angle control sets preload by rotating the nut a defined amount past a **snug** point, which
         avoids the friction scatter that dominates torque control. Past snug, the nut advances along
@@ -393,7 +412,7 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         that plagues the torque method.
         """),
     ("md", r"""
-        ### 18. Bolt Length and Thread Engagement in the Grip (Fastener Tools)
+        ### 19. Bolt Length and Thread Engagement in the Grip (Fastener Tools)
 
         The required bolt length is the grip (clamped thickness, §7) plus everything the bolt must span
         beyond it — washers, the nut height and a short thread protrusion:
@@ -416,7 +435,7 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         thread length can be chosen when a full shank in the grip is wanted.
         """),
     ("md", r"""
-        ### 19. Bolt-Size / Grade Selection (Fastener Tools)
+        ### 20. Bolt-Size / Grade Selection (Fastener Tools)
 
         The selector inverts the design problem: instead of analysing one bolt, it sweeps **every**
         size × grade in the database through the full single-bolt analysis (§1–§14) for the current
@@ -433,7 +452,7 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         crushing limits, thermal preload change and the selected fatigue criterion.
         """),
     ("md", r"""
-        ### 20. Fastener Reference Dimensions (Fastener Tools)
+        ### 21. Fastener Reference Dimensions (Fastener Tools)
 
         A convenience lookup of standard hardware dimensions for the selected size: the hex head/nut
         width across flats, the hex-key (Allen) size of a socket-head cap screw, a typical free-fit
@@ -447,7 +466,7 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         confirm against the governing fastener standard for critical work.
         """),
     ("md", r"""
-        ### 21. Result Visualizations
+        ### 22. Result Visualizations
 
         The visualizations are plots of the equations above, not new models:
 

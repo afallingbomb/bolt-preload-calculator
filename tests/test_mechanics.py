@@ -659,7 +659,7 @@ def test_thread_series_tables_consistency():
         assert set(sizes.keys()) == set(series.keys())
         for name, (_d, coarse_p) in sizes.items():
             opts = series[name]
-            assert len(opts) >= 2                       # at least coarse + one fine
+            assert len(opts) >= 1                       # at least coarse
             assert opts[0][1] == pytest.approx(coarse_p)   # first entry is the coarse pitch
             fine_pitches = [p for _lbl, p in opts[1:]]
             assert all(fp < coarse_p for fp in fine_pitches)   # fine pitches are smaller

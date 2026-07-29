@@ -28,6 +28,10 @@ BOLT_SIZES_METRIC: Dict[str, Tuple[float, float]] = {
     "M24": (24.0, 3.0),
     "M30": (30.0, 3.5),
     "M36": (36.0, 4.0),
+    "M42": (42.0, 4.5),
+    "M48": (48.0, 5.0),
+    "M56": (56.0, 5.5),
+    "M64": (64.0, 6.0),
 }
 
 # Imperial sizes are keyed by NOMINAL DIAMETER (e.g. "1/2") and store their
@@ -44,6 +48,12 @@ BOLT_SIZES_IMPERIAL: Dict[str, Tuple[float, float]] = {
     "3/4": (19.05, 2.54),
     "7/8": (22.225, 2.8222),
     "1": (25.4, 3.175),
+    "1-1/8": (28.575, 3.6286),
+    "1-1/4": (31.750, 3.6286),
+    "1-3/8": (34.925, 4.2333),
+    "1-1/2": (38.100, 4.2333),
+    "1-3/4": (44.450, 5.0800),
+    "2": (50.800, 5.6444),
 }
 
 # Thread series available per bolt size: a list of (label, pitch_mm), coarse/UNC
@@ -65,6 +75,10 @@ BOLT_THREAD_SERIES_METRIC: Dict[str, List[Tuple[str, float]]] = {
     "M24": [("Coarse — 3.00 mm", 3.00), ("Fine — 2.00 mm", 2.00)],
     "M30": [("Coarse — 3.50 mm", 3.50), ("Fine — 2.00 mm", 2.00)],
     "M36": [("Coarse — 4.00 mm", 4.00), ("Fine — 3.00 mm", 3.00)],
+    "M42": [("Coarse — 4.50 mm", 4.50), ("Fine — 3.00 mm", 3.00)],
+    "M48": [("Coarse — 5.00 mm", 5.00), ("Fine — 3.00 mm", 3.00)],
+    "M56": [("Coarse — 5.50 mm", 5.50), ("Fine — 4.00 mm", 4.00)],
+    "M64": [("Coarse — 6.00 mm", 6.00), ("Fine — 4.00 mm", 4.00)],
 }
 
 # Unified inch series: pitch_mm = 25.4 / TPI. UNC (coarse) first, then UNF (fine)
@@ -78,6 +92,12 @@ BOLT_THREAD_SERIES_IMPERIAL: Dict[str, List[Tuple[str, float]]] = {
     "3/4":  [("UNC — 10 TPI", 2.5400), ("UNF — 16 TPI", 1.5875)],
     "7/8":  [("UNC — 9 TPI", 2.8222), ("UNF — 14 TPI", 1.8143)],
     "1":    [("UNC — 8 TPI", 3.1750), ("UNF — 12 TPI", 2.1167), ("UNEF — 20 TPI", 1.2700)],
+    "1-1/8": [("UNC — 7 TPI", 3.6286), ("UNF — 12 TPI", 2.1167)],
+    "1-1/4": [("UNC — 7 TPI", 3.6286), ("UNF — 12 TPI", 2.1167)],
+    "1-3/8": [("UNC — 6 TPI", 4.2333), ("UNF — 12 TPI", 2.1167)],
+    "1-1/2": [("UNC — 6 TPI", 4.2333), ("UNF — 12 TPI", 2.1167)],
+    "1-3/4": [("UNC — 5 TPI", 5.0800)],
+    "2":     [("UNC — 4.5 TPI", 5.6444)],
 }
 
 # Bolt Materials (Metric units: Sp/Sy/Sut/Se in MPa, E in MPa, CTE in 1/C).
@@ -348,6 +368,10 @@ BOLT_HARDWARE: Dict[str, Dict[str, float]] = {
     "M24": {"hex_af": 36.0, "socket_af": 19.0, "clearance": 26.0},
     "M30": {"hex_af": 46.0, "socket_af": 22.0, "clearance": 33.0},
     "M36": {"hex_af": 55.0, "socket_af": 27.0, "clearance": 39.0},
+    "M42": {"hex_af": 65.0, "socket_af": 32.0, "clearance": 45.0},
+    "M48": {"hex_af": 75.0, "socket_af": 36.0, "clearance": 52.0},
+    "M56": {"hex_af": 85.0, "socket_af": 41.0, "clearance": 62.0},
+    "M64": {"hex_af": 95.0, "socket_af": 46.0, "clearance": 70.0},
     "1/4": {"hex_af": 11.11, "socket_af": 4.76, "clearance": 6.93},
     "5/16": {"hex_af": 12.70, "socket_af": 6.35, "clearance": 8.74},
     "3/8": {"hex_af": 14.29, "socket_af": 7.94, "clearance": 10.32},
@@ -356,6 +380,12 @@ BOLT_HARDWARE: Dict[str, Dict[str, float]] = {
     "3/4": {"hex_af": 28.58, "socket_af": 15.88, "clearance": 19.84},
     "7/8": {"hex_af": 33.34, "socket_af": 15.88, "clearance": 23.02},
     "1": {"hex_af": 38.10, "socket_af": 19.05, "clearance": 26.19},
+    "1-1/8": {"hex_af": 42.86, "socket_af": 22.23, "clearance": 30.16},
+    "1-1/4": {"hex_af": 47.63, "socket_af": 22.23, "clearance": 33.34},
+    "1-3/8": {"hex_af": 52.39, "socket_af": 25.40, "clearance": 36.51},
+    "1-1/2": {"hex_af": 57.15, "socket_af": 25.40, "clearance": 39.69},
+    "1-3/4": {"hex_af": 66.68, "socket_af": 31.75, "clearance": 46.04},
+    "2": {"hex_af": 76.20, "socket_af": 38.10, "clearance": 53.98},
 }
 
 

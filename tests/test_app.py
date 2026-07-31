@@ -59,3 +59,39 @@ def test_fe_import_sample_path_renders():
     at.run(timeout=20)
 
     assert not at.exception
+
+
+
+def test_imperial_unit_switch():
+    """D3: Test Imperial unit switch and rendering."""
+    at = AppTest.from_file("app.py")
+    at.run(timeout=15)
+    
+    # Toggle to Imperial
+    at.radio(key="units").set_value("Imperial (in, lbf, psi, °F)").run()
+    
+    assert not at.exception
+    # Verify standard imperial threads exist
+    assert at.selectbox(key="bolt_size").value == '1/2'
+    
+    # Switch back to metric
+    at.radio(key="units").set_value("Metric (mm, N, MPa, °C)").run()
+    assert not at.exception
+    assert at.selectbox(key="bolt_size").value == 'M8'
+
+def test_optional_toggles():
+    """D4: Test that the app runs successfully with all optional toggles enabled."""
+    at = AppTest.from_file("app.py")
+    at.run(timeout=15)
+    
+    at.checkbox(key="use_washer").set_value(True).run()
+    at.toggle(key="use_thermal").set_value(True).run()
+    at.number_input(key="temp_assembly").set_value(20.0).run()
+    at.number_input(key="temp_operating").set_value(150.0).run()
+    at.number_input(key="embedment_um").set_value(5.0).run()
+    
+    at.toggle(key="use_fatigue").set_value(True).run()
+    
+    at.toggle(key="use_thread").set_value(True).run()
+    
+    assert not at.exception

@@ -1133,8 +1133,8 @@ try:
     st.markdown("---")
     with st.container():
         st.subheader("🛠️ Fastener Tools")
-        st.caption("Quick calculators that reuse the current joint, bolt and stiffness results. "
-                   "See §16–§20 of the equations panel for the underlying models.")
+        st.caption("These utilities use the inputs from the **Bolt Configuration** and **Joint Configuration** panels above. "
+                   "See §16–§21 of the equations panel for the underlying models.")
         K_nut = FRICTION_COEFFICIENTS.get(friction_condition, 0.20)
         to_mm = 1.0 / out_length_factor if out_length_factor else 1.0
 
@@ -1213,7 +1213,7 @@ try:
         # 4) Angle (turn-of-nut) control
         with st.expander("📐 Angle control (turn-of-nut)"):
             st.markdown("Rotation beyond snug to reach the target preload, from the joint's elastic "
-                        "stiffness (§17).")
+                        "stiffness (§18).")
             snug_pct = st.slider("Snug preload (% of target)", 0, 50, 10, key="tool_snug")
             target_F = results['recommended_preload_N']
             snug_F = target_F * snug_pct / 100.0
@@ -1228,7 +1228,7 @@ try:
         with st.expander("📏 Bolt length & thread-in-grip"):
             grip_mm = results['total_grip_length_mm']
             st.markdown(f"Grip (clamped thickness) = **{grip_mm*out_length_factor:,.2f} {len_unit}**. "
-                        "Add the stack consumed beyond the grip to size the bolt (§18).")
+                        "Add the stack consumed beyond the grip to size the bolt (§19).")
             d1, d2, d3 = st.columns(3)
             with d1:
                 nut_h = st.number_input(f"Nut height ({len_unit})", min_value=0.0,
@@ -1266,7 +1266,7 @@ try:
         # 4) Min-size / grade selector
         with st.expander("🔎 Size / grade selector"):
             st.markdown("Find the smallest bolt (by stress area) that meets your factor-of-safety "
-                        "targets for the **current joint and per-bolt loads** (§19). Every available "
+                        "targets for the **current joint and per-bolt loads** (§20). Every available "
                         "**pitch** of each size (coarse and fine / UNF) is evaluated.")
             s1, s2, s3 = st.columns(3)
             with s1:
@@ -1318,7 +1318,7 @@ try:
         # 5) Reference dimensions
         with st.expander("🧰 Reference dimensions"):
             hw = bolt_hardware_reference(bolt_size, d_mm, p_mm)
-            st.markdown(f"Typical wrench/hole dimensions for **{thread_desig}** (§20). "
+            st.markdown(f"Typical wrench/hole dimensions for **{thread_desig}** (§21). "
                         "Tap drill follows the selected pitch (d − p).")
 
             def _disp(x: Optional[float]) -> str:

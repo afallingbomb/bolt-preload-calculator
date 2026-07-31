@@ -165,9 +165,10 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         the **joint stiffness constant** $C$:
         """),
     ("eq", r"\frac{1}{k_m} = \sum_{i=1}^{N}\frac{1}{k_i}, \qquad C = \frac{k_b}{k_b + k_m}"),
-    ("cap", "Simplification: each layer's cone base is taken at the head/washer diameter $d_w$ "
-            "(the 30° frustum is not carried continuously through the stack), which is "
-            "conservative for thick joints."),
+    ("cap", "To accurately capture the spreading pressure cone in a multi-layer stack, the tool evaluates "
+            "each layer's stiffness using a 30° frustum expanding downwards from the bolt head (upper half) "
+            "and upwards from the nut (lower half). The cone diameter $D$ grows with depth, making deeper "
+            "layers wider and much stiffer."),
     ("md", r"""
         ### 9. Joint Constant and External-Load Sharing
 
@@ -206,6 +207,10 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         and is deducted from the operating preload:
         """),
     ("eq", r"\Delta F_Z = f_z\,\frac{k_b\,k_m}{k_b + k_m}"),
+    ("md", r"""
+        For standard machined joints, this relaxation is on the order of a few percent. It is most 
+        severe in joints with many short, rough layers or gaskets.
+        """),
     ("md", r"""
         ### 11. Fatigue (mean-stress criteria, preloaded load line)
 
@@ -319,17 +324,18 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
     ("md", r"""
         ### 14. Thread Stripping and Engagement Length
 
-        A bolt threaded into a weaker tapped material can shear ("strip") the internal threads before it
-        fails in tension. Shear is taken on a cylinder at the major diameter, limited by the von Mises
-        shear yield $0.577\,S_y$:
+        A threaded joint can fail by shearing ("stripping") either the internal tapped threads or the 
+        external bolt threads before the bolt breaks in tension. The tool uses Alexander's equations 
+        (ASME B1.1 / FED-STD-H28) to compute the shear area per unit length for both members:
         """),
-    ("eq", r"A_s = \pi\,d\,(0.75\,L_e), \qquad \tau = \frac{F_{b,\max}}{A_s} \le 0.577\,S_y"),
+    ("eq", r"A_{s,int} = \pi\,d\,\left(\frac{1}{2} + \frac{d - D_2}{\sqrt{3}\,p}\right) L_e"),
+    ("eq", r"A_{s,ext} = \pi\,d_1\,\left(\frac{1}{2} + \frac{d_2 - d_1}{\sqrt{3}\,p}\right) L_e"),
     ("md", r"""
-        $L_e$ is the engagement length and $0.75$ the fraction of the cylinder in shear contact. Good
-        practice engages enough thread that the bolt yields *before* the threads strip; the tool reports
-        the minimum engagement that develops the bolt proof load:
+        The shear capacities are the areas multiplied by the von Mises shear yields ($0.577\,S_y$). 
+        The tool checks whichever thread is weaker (bolt or tapped hole) against the maximum bolt force 
+        $F_{b,\max}$ to give the stripping factor of safety. The required engagement $L_{e,\min}$ is the 
+        length needed to develop the bolt's proof load.
         """),
-    ("eq", r"L_{e,\min} = \frac{F_p}{\pi\,d\,(0.75)\,(0.577\,S_y)}"),
     ("md", r"""
         ### 15. Bolt-Group / Pattern Analysis (elastic method)
 
@@ -426,11 +432,13 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         """),
     ("eq", r"b_{\text{metric}} = \begin{cases} 2d + 6 & L \le 125 \\ 2d + 12 & 125 < L \le 200 \\ "
            r"2d + 25 & L > 200 \end{cases}\ \text{[mm]}"),
-    ("eq", r"b_{\text{inch}} = \begin{cases} 2d + 6.35 & L \le 152.4 \\ 2d + 12.7 & L > 152.4 "
-           r"\end{cases}\ \text{[mm]}\quad (2d + \tfrac14\,\text{in},\ 2d + \tfrac12\,\text{in})"),
+    ("eq", r"b_{\text{inch}} = \begin{cases} 2d + 0.25\text{ in} & L \le 6\text{ in} \\ 2d + 0.50\text{ in} & L > 6\text{ in} \end{cases}"),
     ("md", r"""
+        The unthreaded shank length is simply $\ell_{shank} = L - b$. Because the fastener must protrude 
+        through the nut, its total length $L$ exceeds the grip $L_{grip}$. Thus, the actual threaded 
+        portion falling *within* the grip is $l_t = L_{grip} - \ell_{shank}$ (bounded by 0 and $L_{grip}$).
         If $\ell_{shank} < L_{grip}$ the **threads lie within the grip**: the reduced tensile-stress-area
-        section then spans part of the clamped length, lowering the bolt stiffness $k_b$ (§7) and
+        section spans part of the clamped length, lowering the bolt stiffness $k_b$ (§7) and
         slightly raising the joint constant $C$. The tool flags this so a longer bolt or a shorter
         thread length can be chosen when a full shank in the grip is wanted.
         """),
@@ -489,7 +497,7 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
           colour.
         """),
     ("md", r"""
-        ### 22. FE Results Import (CSV)
+        ### 23. FE Results Import (CSV)
 
         The **FE Import** tab evaluates per-bolt results from an external finite-element model. The CSV
         is read in **SI units** and the axial columns are the **total bolt force** over the duty cycle
@@ -520,7 +528,7 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         written **only** to its own CSV + PDF report and never appear in the other tabs' exports.
         """),
     ("md", r"""
-        ### 23. Key Assumptions and Limitations
+        ### 24. Key Assumptions and Limitations
 
         - **Linear-elastic** bolt and members; no plasticity, creep or embedment relaxation is modelled
           (other than capping preload at the crushing limit).

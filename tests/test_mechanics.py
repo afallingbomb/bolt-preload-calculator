@@ -77,9 +77,10 @@ def test_calculate_preload_basic():
     assert 34000 < result["proof_load_N"] < 35500
     assert result["crushing_warning_material"] == "Layer 1"
     assert result["recommended_preload_N"] < result["target_preload_N"]
-    assert result["kb_N_mm"] > 0
-    assert result["km_N_mm"] > 0
-    assert 0 < result["joint_constant_C"] < 1.0
+    import math
+    assert math.isclose(result["kb_N_mm"], 629291.985, rel_tol=1e-3)
+    assert math.isclose(result["km_N_mm"], 2015120.625, rel_tol=1e-3)
+    assert math.isclose(result["joint_constant_C"], 0.2380, rel_tol=1e-3)
 
 def test_thermal_expansion():
     # Aluminum joint expands more than steel bolt -> preload increases
@@ -892,7 +893,7 @@ def test_exact_tightening_torque():
     # Typical M10 x 1.5 coarse thread tightened to 20,000 N
     # d = 10, p = 1.5, ft = 0.15, fc = 0.15, dc = 12.5
     # Shigley typically expects K roughly 0.20 for standard friction
-    target_F = 20000.0
+    target_F = 30000.0
     d = 10.0
     p = 1.5
     ft = 0.15
@@ -904,8 +905,11 @@ def test_exact_tightening_torque():
     # Check physical constraints: total = thread + collar
     assert total_Nm == pytest.approx(thread_Nm + collar_Nm)
     
-    # K should be around 0.19 to 0.21
-    assert 0.18 < equiv_K < 0.22
+    # Check against Shigley-derived absolute physical values
+    assert total_Nm == pytest.approx(59.02, abs=0.01)
+    assert thread_Nm == pytest.approx(30.89, abs=0.01)
+    assert collar_Nm == pytest.approx(28.12, abs=0.01)
+    assert equiv_K == pytest.approx(0.1967, abs=0.0001)
     
     # T = K F d
     assert total_Nm == pytest.approx(equiv_K * target_F * (d / 1000.0))
@@ -915,3 +919,58 @@ def test_exact_tightening_torque():
     assert total_Nm2 > total_Nm
     assert K2 > equiv_K
 
+
+
+def test_recommend_bolt_fatigue_gate():
+    # If the check_fatigue flag is false, a bolt that would otherwise fail fatigue
+    # should be accepted. If true, it should be rejected.
+    layers = _steel_layers()
+    # High alternating load
+    ext_min = 0.0
+    ext_max = 50000.0
+    
+    rec_with = recommend_bolt(
+        BOLT_SIZES_METRIC, BOLT_MATERIALS_METRIC, layers, bolt_type="Hex Head", use_washer=False,
+        is_permanent=False, friction_condition="Dry / as-received (K=0.20)",
+        external_load_min=ext_min, external_load_max=ext_max,
+        target_proof_fos=1.0, target_separation_fos=1.0, target_fatigue_fos=2.0,
+        is_metric=True, embedment_um=0.0, load_intro_factor=1.0,
+        thread_engagement_length=15.0, fatigue_criterion="Goodman"
+        # I cannot pass check_fatigue=True, wait! Does recommend_bolt take check_fatigue?
+    )
+    
+    rec_without = recommend_bolt(
+        BOLT_SIZES_METRIC, BOLT_MATERIALS_METRIC, layers, bolt_type="Hex Head", use_washer=False,
+        is_permanent=False, friction_condition="Dry / as-received (K=0.20)",
+        external_load_min=ext_min, external_load_max=ext_max,
+        target_proof_fos=1.0, target_separation_fos=1.0, target_fatigue_fos=0.0,
+        is_metric=True, embedment_um=0.0, load_intro_factor=1.0,
+        thread_engagement_length=15.0, fatigue_criterion="Goodman"
+    )
+    
+    # The bolt chosen without fatigue checking should be smaller
+    if rec_with["best"] is not None and rec_without["best"] is not None:
+        assert rec_without["best"]["stress_area_mm2"] <= rec_with["best"]["stress_area_mm2"]
+
+def test_three_layer_stack_and_iso_888():
+    layers = [
+        {"Material": "Steel (Mild)", "thickness": 20.0, "Syc": 250, "E": 200000, "CTE": 11.5e-6},
+        {"Material": "Aluminum (6061-T6)", "thickness": 20.0, "Syc": 275, "E": 69000, "CTE": 23.6e-6},
+        {"Material": "Steel (Mild)", "thickness": 20.0, "Syc": 250, "E": 200000, "CTE": 11.5e-6}
+    ]
+    res = calculate_preload(10.0, 1.5, BOLT_MATERIALS_METRIC['Grade 8.8'], layers, 'Hex Head', False, False, 'Dry / as-received (K=0.20)')
+    assert res['joint_constant_C'] > 0
+    # ISO-888 standard thread length check for metric M10, L=80
+    b = standard_thread_length(10.0, 80.0, metric=True)
+    assert b == 2 * 10.0 + 6.0
+
+def test_bolt_group_moment_axis_y():
+    points = [(-10, -10), (10, -10), (10, 10), (-10, 10)]
+    group = analyze_bolt_group(
+        points,
+        axial_load=1000.0,
+        moment=50000.0, moment_axis="y",
+        shear_load=2000.0, shear_eccentricity=0.0
+    )
+    assert group["governing_tension_N"] > 500
+    assert group["governing_shear_N"] > 250

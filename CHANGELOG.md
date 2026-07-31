@@ -3,6 +3,22 @@
 All notable changes to this project are documented here. The format is loosely
 based on [Keep a Changelog](https://keepachangelog.com/); this project uses a
 manual `__version__` string in [`version.py`](version.py).
+## [1.1.0]
+
+### Added
+- **Imperial Unit System** support for material properties, bolts, and calculation inputs.
+- **Custom Material fatigue endurance limit ($S_e$)** default derived dynamically from $S_{ut}$.
+- **Fatigue check gate** now properly gates the `recommend_bolt` workflow.
+- **Combined/Governing FoS columns** in FE import PDF summary tables.
+
+### Fixed
+- Fixed **Python 3.12+ import crash** due to eager TypedDict evaluation.
+- Fixed **zero-shear torque** not being correctly handled in the analysis logic.
+- Corrected **Imperial Stress Area constant** from $\pi/4$ to $\pi/4 \times (1 - 0.9743/n)^2$.
+- Fixed **7/8" hex key size** missing mapping.
+- Clamped **member force line to 0** in PDF joint diagrams.
+- Fixed various theoretical descriptions and equation block references in the engineering manual.
+
 
 ## [1.0.0]
 

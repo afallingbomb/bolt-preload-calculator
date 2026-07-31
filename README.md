@@ -106,6 +106,7 @@ input and output edges.
 | [`report.py`](report.py) | ReportLab PDF builders (analysis report, FE report, theory manual). |
 | [`theory.py`](theory.py) | Single source for the in-app theory manual, rendered both on screen and to PDF. |
 | [`app.py`](app.py) | Streamlit page: sidebar, tabs, and the orchestration that wires the above together. |
+| [`version.py`](version.py) | Single source of truth for the application version string. |
 
 `benchmark.py` is a standalone micro-benchmark (`python benchmark.py`) for the hot
 paths; it is not imported by the app or the tests.

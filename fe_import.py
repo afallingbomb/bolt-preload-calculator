@@ -1,3 +1,4 @@
+from __future__ import annotations
 """FE-results import tab: evaluate per-bolt finite-element results from a CSV and
 report a factor-of-safety verdict per bolt.
 
@@ -236,3 +237,4 @@ def render_fe_import_tab(bolt_grades: Mapping[str, BoltMaterial]) -> None:
     dl2.download_button("📑 Download FE report (PDF + graphics)", data=pdf_bytes,
                         file_name="fe_bolt_report.pdf", mime="application/pdf",
                         key="fe_pdf_dl", disabled=not ok)
+

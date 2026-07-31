@@ -1,3 +1,4 @@
+from __future__ import annotations
 """PDF report generation for the bolt preload calculator.
 
 Pure-Python (reportlab) so it deploys on Streamlit Community Cloud without any
@@ -451,3 +452,4 @@ def build_theory_pdf(title: str, blocks: List[Tuple[str, str]]) -> bytes:
             story.append(Paragraph("<i>" + _md_inline(content) + "</i>", cap))
     doc.build(story)
     return buf.getvalue()
+

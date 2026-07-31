@@ -1,3 +1,4 @@
+from __future__ import annotations
 import html
 import json
 import logging
@@ -1501,3 +1502,4 @@ except Exception as e:
 st.markdown("---")
 st.caption(f"Bolt Preload & Joint Analysis · v{__version__} · methodology per Shigley Ch. 8 and "
            "VDI 2230 · values are nominal — verify before design use.")
+

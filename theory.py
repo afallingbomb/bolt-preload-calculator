@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Single source of truth for the in-app theory manual.
 
 THEORY_BLOCKS is a list of (kind, content) tuples rendered two ways:
@@ -546,3 +547,4 @@ THEORY_BLOCKS: List[Tuple[str, str]] = [
         judgement of a responsible engineer.
         """),
 ]
+

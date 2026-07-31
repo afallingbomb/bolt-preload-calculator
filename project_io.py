@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Project save/load (JSON), unit auto-conversion, and the custom-material data
 helpers that back both.
 
@@ -198,3 +199,4 @@ def apply_project(proj: dict) -> None:
     # material editors rebuild their DataFrame from those rows each run, so there
     # is no separate ``*_materials_df`` to seed here.
     st.session_state["_prev_units"] = scalars.get("units")
+

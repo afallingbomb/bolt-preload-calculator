@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Figure and chart builders for the bolt preload calculator.
 
 Pure plotting helpers (matplotlib for the PDF, Altair for the interactive UI) with
@@ -650,3 +651,4 @@ def make_fe_dashboard_figure(df: Any, target: float) -> Figure:
 
     axes[3][1].axis("off")
     return fig
+

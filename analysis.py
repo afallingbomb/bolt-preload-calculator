@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Pure presentation logic derived from a calculation result.
 
 Factor-of-safety formatting and the design "findings" (the warnings/errors shown
@@ -122,3 +123,4 @@ def collect_findings(
             "preload — the joint may lose clamp entirely. Re-check the embedment estimate.")
 
     return findings, report_warnings
+

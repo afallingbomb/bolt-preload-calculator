@@ -88,17 +88,20 @@ INPUT_KEYS = [
     "g_rows", "g_cols", "g_px", "g_py", "g_n", "g_bcd", "g_start",
     "g_axial_max", "g_axial_min", "g_moment_max", "g_moment_min", "moment_axis_label",
     "g_shear", "g_ecc", "slip_mu", "slip_ns",
+    "tool_torque", "tool_yield_pct", "tool_exact_dc", "tool_exact_targetF", "tool_snug",
+    "tool_nut_h", "tool_wash_t", "tool_n_wash", "tool_protr", "tool_tgt_proof", "tool_tgt_fat",
+    "tool_tgt_sep", "tool_search_all", "tool_run_solver"
 ]
 _TABLE_KEYS = ["layers", "group_table", "custom_joint_rows", "custom_bolt_rows"]
-_LEN_KEYS = ("thread_engagement", "g_px", "g_py", "g_bcd", "g_ecc")
-_FORCE_KEYS = ("ext_max", "ext_min", "g_axial_max", "g_axial_min", "g_shear")
+_LEN_KEYS = ("thread_engagement", "g_px", "g_py", "g_bcd", "g_ecc", "tool_exact_dc", "tool_nut_h", "tool_wash_t", "tool_protr")
+_FORCE_KEYS = ("ext_max", "ext_min", "g_axial_max", "g_axial_min", "g_shear", "tool_exact_targetF")
 _TEMP_KEYS = ("temp_assembly", "temp_operating")
-_MOMENT_KEYS = ("g_moment_max", "g_moment_min")
+_MOMENT_KEYS = ("g_moment_max", "g_moment_min", "tool_torque")
 # Type buckets used to coerce loaded project values back to what each widget expects.
-_INT_KEYS = ("num_bolts", "g_rows", "g_cols", "g_n", "slip_ns")
-_BOOL_KEYS = ("use_washer", "is_permanent", "use_group", "use_thermal", "use_fatigue", "use_thread")
+_INT_KEYS = ("num_bolts", "g_rows", "g_cols", "g_n", "slip_ns", "tool_n_wash", "tool_snug", "tool_yield_pct")
+_BOOL_KEYS = ("use_washer", "is_permanent", "use_group", "use_thermal", "use_fatigue", "use_thread", "tool_search_all", "tool_run_solver")
 _FLOAT_KEYS = (_LEN_KEYS + _FORCE_KEYS + _TEMP_KEYS + _MOMENT_KEYS
-               + ("embedment_um", "load_intro_factor", "required_fos", "g_start", "slip_mu"))
+               + ("embedment_um", "load_intro_factor", "required_fos", "g_start", "slip_mu", "tool_tgt_proof", "tool_tgt_fat", "tool_tgt_sep"))
 PROJECT_SCHEMA = "bolt-preload-project-v1"
 
 
@@ -179,8 +182,17 @@ def apply_project(proj: dict) -> None:
         except (TypeError, ValueError):
             continue  # leave the widget at its default
     for tbl in _TABLE_KEYS:
-        if isinstance(proj.get(tbl), list):
-            st.session_state[tbl] = proj[tbl]
+        tbl_data = proj.get(tbl)
+        if isinstance(tbl_data, list):
+            if tbl == "layers":
+                # Scrub malformed rows (A6)
+                valid_layers = []
+                for row in tbl_data:
+                    if isinstance(row, dict) and row.get("Material") and row.get("Thickness") is not None:
+                        valid_layers.append(row)
+                st.session_state[tbl] = valid_layers
+            else:
+                st.session_state[tbl] = tbl_data
 
     # custom_joint_rows / custom_bolt_rows are restored by the loop above; the
     # material editors rebuild their DataFrame from those rows each run, so there

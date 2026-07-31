@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import math
 import numpy as np
@@ -406,11 +407,11 @@ class PreloadResult(TypedDict):
     recommended_preload_N: float
     torque_Nm: float
     bearing_area_mm2: float
-    bearing_stress_MPa: float
     crushing_warning_material: str
     kb_N_mm: float
     km_N_mm: float
     joint_constant_C: float
+    load_intro_factor: float
     total_grip_length_mm: float
     thermal_delta_F_N: float
     embedment_loss_N: float
@@ -450,6 +451,7 @@ class BoltGroupResult(TypedDict):
     sum_distance_sq_mm2: float
     polar_moment_mm2: float
     moment_reactable: bool
+    torque_reactable: bool
 
 
 class _Sourced(TypedDict, total=False):
@@ -504,9 +506,10 @@ class RecommendResult(TypedDict):
     candidates: List[BoltCandidate]
 
 
-def calculate_stress_area(d: float, p: float) -> float:
-    """Tensile stress area A_t = (pi/4)(d - 0.9382 p)^2 (ISO metric)."""
-    return (math.pi / 4.0) * (d - 0.9382 * p)**2
+def calculate_stress_area(d: float, p: float, is_metric: bool = True) -> float:
+    """Tensile stress area A_t. Uses ISO metric constant 0.9382 or inch unified constant 0.9743."""
+    pitch_const = 0.9382 if is_metric else 0.9743
+    return (math.pi / 4.0) * (d - pitch_const * p)**2
 
 
 def calculate_bearing_diameter(d: float, bolt_type: str, use_washer: bool) -> float:
@@ -745,6 +748,7 @@ def calculate_preload(
     fatigue_criterion: str = "Goodman",
     embedment_um: float = 0.0,
     load_intro_factor: float = 1.0,
+    is_metric: bool = True,
 ) -> PreloadResult:
     """
     Calculate preload, stiffness, thermal, fatigue, separation and thread
@@ -760,8 +764,8 @@ def calculate_preload(
     bolt_cte = bolt_material_props["CTE"]
     bolt_E = bolt_material_props.get("E", BOLT_MODULUS_MPA)
 
-    # 1. Bolt tensile mechanics
-    At = calculate_stress_area(d, p)
+    # 1. Physical areas
+    At = calculate_stress_area(d, p, is_metric)
     Fp = Sp * At                                   # proof load
     Fi = (0.90 if is_permanent else 0.75) * Fp     # target preload
 
@@ -882,8 +886,8 @@ def calculate_preload(
     #    external load and the members are relieved by (1 - n*C). n = 1 puts the load
     #    at the joint interfaces (the classic Shigley assumption).
     C_load = load_intro_factor * C
-    F_ext_max = external_load_max
-    F_ext_min = external_load_min
+    F_ext_max = max(external_load_max, external_load_min)
+    F_ext_min = min(external_load_max, external_load_min)
     Fb_max = F_operating + C_load * F_ext_max
     Fb_min = F_operating + C_load * F_ext_min
 
@@ -949,11 +953,11 @@ def calculate_preload(
         "recommended_preload_N": recommended_preload,
         "torque_Nm": torque,
         "bearing_area_mm2": Ab,
-        "bearing_stress_MPa": bearing_stress,
         "crushing_warning_material": crushing_warning,
         "kb_N_mm": kb,
         "km_N_mm": km,
         "joint_constant_C": C,
+        "load_intro_factor": load_intro_factor,
         "total_grip_length_mm": L,
         "thermal_delta_F_N": delta_F_thermal,
         "embedment_loss_N": embedment_loss,
@@ -1218,6 +1222,11 @@ def recommend_bolt(
     external_load_max: float = 0.0,
     external_load_min: float = 0.0,
     fatigue_criterion: str = "Goodman",
+    embedment_um: float = 0.0,
+    load_intro_factor: float = 1.0,
+    thread_engagement_length: float = 0.0,
+    internal_thread_material_props: Optional[JointMaterial] = None,
+    is_metric: bool = True,
     target_proof_fos: float = 1.5,
     target_fatigue_fos: float = 1.5,
     target_separation_fos: float = 1.1,
@@ -1245,7 +1254,11 @@ def recommend_bolt(
                     bolt_type=bolt_type, use_washer=use_washer, is_permanent=is_permanent,
                     friction_condition=friction_condition, temp_assembly=temp_assembly,
                     temp_operating=temp_operating, external_load_max=external_load_max,
-                    external_load_min=external_load_min, fatigue_criterion=fatigue_criterion)
+                    external_load_min=external_load_min, fatigue_criterion=fatigue_criterion,
+                    embedment_um=embedment_um, load_intro_factor=load_intro_factor,
+                    thread_engagement_length=thread_engagement_length,
+                    internal_thread_material_props=internal_thread_material_props,
+                    is_metric=is_metric)
                 ok = res["proof_fos"] >= target_proof_fos
                 if has_ext:
                     ok = ok and res["separation_fos"] >= target_separation_fos
@@ -1342,6 +1355,7 @@ def analyze_bolt_group(
             "sum_distance_sq_mm2": 0.0,
             "polar_moment_mm2": 0.0,
             "moment_reactable": False,
+            "torque_reactable": False,
         }
 
     c_arr = np.array(coords, dtype=float)
@@ -1390,6 +1404,7 @@ def analyze_bolt_group(
         "sum_distance_sq_mm2": sum_d2,
         "polar_moment_mm2": J,
         "moment_reactable": moment_reactable,
+        "torque_reactable": J > 0.0,
     }
 
 
@@ -1427,8 +1442,8 @@ def combined_tension_shear_fos(axial_force: float, shear_force: float, At: float
     The operating point is scaled onto the unit ellipse
     (sigma/Sp)^2 + (tau/(0.577 Sy))^2 = 1 and the FoS is that scale factor. Shear
     uses the tensile-stress area (threads assumed in the shear plane -- conservative).
-    Returns +inf when there is no load. Shared by the FE-import per-bolt check and
-    the interactive bolt-group governing-bolt check.
+    Returns:
+        float: Combined factor of safety. Inf if no load.
     """
     if At <= 0.0:
         return float('inf')
@@ -1443,10 +1458,35 @@ def combined_tension_shear_fos(axial_force: float, shear_force: float, At: float
     return (1.0 / math.sqrt(util)) if util > 0 else float('inf')
 
 
+def aisc_slip_critical_fos(operating_preload: float, external_tension: float, n_intro: float, C: float, 
+                           shear_force: float, slip_mu: float, slip_ns: int) -> float:
+    """Calculates the slip-critical factor of safety, deducting the applied external tension 
+    from the residual clamp force available for friction.
+    
+    Args:
+        operating_preload: F_op, the installed preload minus any relaxation losses.
+        external_tension: Applied external tension load (per bolt).
+        n_intro: Load introduction factor.
+        C: Joint stiffness constant.
+        shear_force: The transverse shear force to resist.
+        slip_mu: Slip (friction) coefficient.
+        slip_ns: Number of faying surfaces.
+        
+    Returns:
+        float: Factor of safety against slip. Inf if no shear force.
+    """
+    if shear_force <= 0:
+        return float('inf')
+    # Residual clamp is the operating preload reduced by the relief from external tension
+    residual_clamp = max(0.0, operating_preload - (1.0 - n_intro * C) * external_tension)
+    slip_resistance = slip_mu * slip_ns * residual_clamp
+    return slip_resistance / shear_force
+
+
 def evaluate_fe_bolt(d: float, p: float, Sp: float, Sy: float, Sut: float, Se: float,
                      axial_max: float, axial_min: float, preload: float = 0.0,
                      shear_max: float = 0.0, fatigue_criterion: str = "Goodman",
-                     target_fos: float = 1.5) -> Dict[str, Any]:
+                     target_fos: float = 1.5, is_metric: bool = True) -> Dict[str, Any]:
     """Factor-of-safety evaluation of one bolt from external FE results (SI units).
 
     ``axial_max``/``axial_min`` are the TOTAL bolt tension over the duty cycle.
@@ -1455,16 +1495,19 @@ def evaluate_fe_bolt(d: float, p: float, Sp: float, Sy: float, Sut: float, Se: f
     and a pass/fail flag against ``target_fos``. Shear uses the tensile-stress area
     (threads assumed in the shear plane -- conservative).
     """
-    At = calculate_stress_area(d, p)
-    sigma_max = axial_max / At if At > 0 else 0.0
-    sigma_min = axial_min / At if At > 0 else 0.0
+    At = calculate_stress_area(d, p, is_metric)
+    F_max = max(axial_max, axial_min)
+    F_min = min(axial_max, axial_min)
+    
+    sigma_max = F_max / At if At > 0 else 0.0
+    sigma_min = F_min / At if At > 0 else 0.0
     sigma_a = max(0.0, (sigma_max - sigma_min) / 2.0)
     sigma_m = (sigma_max + sigma_min) / 2.0
     # Load line starts at the steady (preload) point; fall back to the minimum stress.
     sigma_i = (preload / At) if (preload > 0.0 and At > 0) else sigma_min
 
     Fp = Sp * At
-    proof_fos = Fp / axial_max if axial_max > 0 else float('inf')
+    proof_fos = Fp / F_max if F_max > 0 else float('inf')
 
     if fatigue_criterion.startswith("VDI"):
         fatigue_fos = vdi2230_endurance_fos(

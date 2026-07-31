@@ -43,6 +43,7 @@ class AnalysisContext:
     slip_fos: Optional[float]
     combined_fos: Optional[float]
     embedment_um: float
+    use_fatigue: bool = True
 
 
 def collect_findings(
@@ -87,7 +88,7 @@ def collect_findings(
             f"engagement (≥ {results['required_engagement_mm']*units.length_factor:,.2f} "
             f"{units.len_unit}) or use a stronger internal material.")
 
-    if results["fatigue_fos"] < 1.0:
+    if ctx.use_fatigue and results["fatigue_fos"] < 1.0:
         add("error", f"**Fatigue Failure Risk:** Bolt is expected to fail under cyclic loading "
             f"({ctx.fatigue_criterion} FOS = {results['fatigue_fos']:.2f}).")
 

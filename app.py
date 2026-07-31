@@ -21,7 +21,7 @@ from mechanics import (
     rectangular_pattern, circular_pattern, analyze_bolt_group,
     preload_from_torque, preload_from_yield_percent, tightening_angle, recommend_bolt_length,
     grip_thread_engagement, bolt_hardware_reference, recommend_bolt,
-    clamp_load_budget, combined_tension_shear_fos,
+    clamp_load_budget, combined_tension_shear_fos, aisc_slip_critical_fos,
     thread_series_options, thread_designation,
     exact_tightening_torque
 )
@@ -166,9 +166,10 @@ def generate_pdf_report(
             d_for_cs, dw_for_cs, use_washer_cs, units.length_factor, units.len_unit, dark=False)
         if fig_cs is not None:
             figs.append(fig_to_png(fig_cs))
+    C_load = results['joint_constant_C'] * results.get('load_intro_factor', 1.0)
     fig_jd = make_joint_diagram(
         results['kb_N_mm'], results['km_N_mm'], results['operating_preload_N'],
-        ext_max_N, results['joint_constant_C'],
+        ext_max_N, C_load,
         units.force_factor, units.length_factor, units.force_unit, units.len_unit, dark=False)
     if fig_jd is not None:
         figs.append(fig_to_png(fig_jd))
@@ -607,13 +608,15 @@ with tab1:
                     "per-bolt load is taken from the **Bolt Group** tab.")
         st.markdown("Cyclic/static external load on the joint. If several identical bolts share the "
                     "load, set the bolt count for the per-bolt result.")
-        f_col1, f_col2, f_col3 = st.columns(3)
+        f_col1, f_col2, f_col3, f_col4 = st.columns(4)
         with f_col1:
-            ext_max = st.number_input(f"Max External Load ({force_unit})", value=0.0, key="ext_max")
+            ext_max = st.number_input(f"Max Ext Tension ({force_unit})", value=0.0, key="ext_max")
         with f_col2:
-            ext_min = st.number_input(f"Min External Load ({force_unit})", value=0.0, key="ext_min")
+            ext_min = st.number_input(f"Min Ext Tension ({force_unit})", value=0.0, key="ext_min")
         with f_col3:
-            num_bolts = st.number_input("Number of Bolts", min_value=1, value=1, step=1,
+            shear_max = st.number_input(f"Ext Shear ({force_unit})", value=0.0, key="shear_max")
+        with f_col4:
+            num_bolts = st.number_input("Bolt Count", min_value=1, value=1, step=1,
                                         key="num_bolts",
                                         help="External load is divided equally among this many bolts.")
 
@@ -776,6 +779,10 @@ with tab4:
             st.warning("⚠️ The pattern cannot react the applied moment about this axis (all bolts lie on "
                        "the bending axis). Only the axial share is distributed.")
 
+        if not g_res_max.get("torque_reactable", True) and g_shear_N != 0.0 and g_ecc_mm != 0.0:
+            st.warning("⚠️ The pattern consists of a single bolt and cannot react eccentric shear torque "
+                       "as a force couple. Torque is ignored in shear calculation.")
+
         ch_bg = alt_bolt_group_chart(
             group_coords, g_res_max["tensions_N"], g_res_max["shear_vectors_N"],
             g_res_max["governing_index"], out_length_factor, out_force_factor, len_unit, force_unit)
@@ -816,7 +823,10 @@ try:
 
     layers_metric: List[Layer] = []
     for row in edited_layers:
-        mat_key = row["Material"]
+        mat_key = row.get("Material")
+        if not mat_key or mat_key not in joint_materials_all:
+            st.warning("Invalid or missing material in layer table. Please check your joint layers.")
+            continue
         t_input = row.get("Thickness", 0.0)
         if t_input is None:
             t_input = 0.0
@@ -831,7 +841,7 @@ try:
         })
 
     if not layers_metric:
-        st.info("Add at least one joint layer to run the analysis.")
+        st.info("Add at least one valid joint layer to run the analysis.")
         st.stop()
 
     temp_assembly_C = temp_assembly if is_metric else (temp_assembly - 32) * 5.0/9.0
@@ -850,6 +860,10 @@ try:
         n_bolts = max(1, int(num_bolts))
         ext_max_N = (ext_max if is_metric else ext_max * 4.44822) / n_bolts
         ext_min_N = (ext_min if is_metric else ext_min * 4.44822) / n_bolts
+        governing_shear_N = (shear_max if is_metric else shear_max * 4.44822) / n_bolts
+        
+    if ext_min_N > ext_max_N:
+        st.warning(f"Minimum external tension ({ext_min_N*out_force_factor:.0f} {force_unit}) exceeds maximum ({ext_max_N*out_force_factor:.0f} {force_unit}). The calculator will bound them safely, but check your inputs.")
 
     eng_len_mm = thread_engagement if is_metric else thread_engagement * 25.4
     internal_props = joint_materials_all[internal_thread_mat] if internal_thread_mat != "(None)" else None
@@ -879,8 +893,9 @@ try:
     slip_fos: Optional[float] = None
     combined_fos: Optional[float] = None
     if group_active and governing_shear_N > 0:
-        slip_resistance = slip_mu * slip_ns * results["operating_preload_N"]
-        slip_fos = slip_resistance / governing_shear_N
+        slip_fos = aisc_slip_critical_fos(
+            results["operating_preload_N"], ext_max_N, load_intro_factor, results["joint_constant_C"],
+            governing_shear_N, slip_mu, slip_ns)
         # Elliptic tension-shear interaction on the governing bolt (bolt body in bearing).
         combined_fos = combined_tension_shear_fos(
             results["max_bolt_force_N"], governing_shear_N, results["tensile_stress_area_mm2"],
@@ -895,7 +910,8 @@ try:
         scatter=scatter, preload_disp=preload_disp, preload_hi=preload_hi,
         required_fos=required_fos, fatigue_criterion=fatigue_criterion,
         has_internal=internal_props is not None, ext_max_N=ext_max_N,
-        slip_fos=slip_fos, combined_fos=combined_fos, embedment_um=embedment_um
+        slip_fos=slip_fos, combined_fos=combined_fos, embedment_um=embedment_um,
+        use_fatigue=use_fatigue
     )
     findings, report_warnings = collect_findings(results, units, ctx)
 
@@ -1046,9 +1062,10 @@ try:
             st.info("Add a layer with thickness to draw the cross-section.")
     with viz_c2:
         st.markdown("**Joint diagram (force vs. deflection)**")
+        C_load = results['joint_constant_C'] * results.get('load_intro_factor', 1.0)
         ch_jd = alt_joint_diagram(
             results['kb_N_mm'], results['km_N_mm'], results['operating_preload_N'],
-            ext_max_N, results['joint_constant_C'],
+            ext_max_N, C_load,
             out_force_factor, out_length_factor, force_unit, len_unit)
         if ch_jd is not None:
             st.altair_chart(ch_jd)
@@ -1060,8 +1077,9 @@ try:
     bf_c1, bf_c2 = st.columns([1, 1])
     with bf_c1:
         st.markdown("**Bolt & member force vs. external load**")
+        C_load = results['joint_constant_C'] * results.get('load_intro_factor', 1.0)
         ch_bf = alt_bolt_force_chart(
-            results['operating_preload_N'], results['joint_constant_C'],
+            results['operating_preload_N'], C_load,
             results['separation_load_N'], ext_max_N, out_force_factor, force_unit)
         if ch_bf is not None:
             st.altair_chart(ch_bf)
@@ -1071,19 +1089,21 @@ try:
             st.info("Force-sharing chart needs finite stiffness and preload.")
     with bf_c2:
         st.markdown("**Clamp-load budget**")
+        C_load = results['joint_constant_C'] * results.get('load_intro_factor', 1.0)
         _budget = clamp_load_budget(
             results['recommended_preload_N'], results['embedment_loss_N'],
-            results['thermal_delta_F_N'], results['joint_constant_C'], ext_max_N)
+            results['thermal_delta_F_N'], C_load, ext_max_N)
         st.altair_chart(alt_clamp_waterfall(_budget, out_force_factor, force_unit))
         st.caption("Installation preload stepped by embedment, thermal change and external-load relief "
                    "down to the residual clamp on the members.")
 
     st.markdown("**External-load sharing (joint constant $C$)**")
-    st.altair_chart(alt_load_sharing(results['joint_constant_C'], ext_max_N,
+    C_load = results['joint_constant_C'] * results.get('load_intro_factor', 1.0)
+    st.altair_chart(alt_load_sharing(C_load, ext_max_N,
                                      out_force_factor, force_unit))
     if ext_max_N > 0:
         st.caption(f"Of the {ext_max_N*out_force_factor:,.0f} {force_unit} external load, the bolt sees "
-                   f"$C\\,P$ = {results['joint_constant_C']*ext_max_N*out_force_factor:,.0f} {force_unit}; "
+                   f"$n\\,C\\,P$ = {C_load*ext_max_N*out_force_factor:,.0f} {force_unit}; "
                    "the remainder relieves the members.")
     else:
         st.caption("No external load entered — the split shows the fractions $C$ and $1-C$ only.")
@@ -1140,7 +1160,7 @@ try:
             st.markdown("Determine the required preload to reach a desired percentage of the bolt's yield strength.")
             yield_pct = st.number_input("Target Yield (%)", min_value=1.0, max_value=150.0,
                                         value=75.0, key="tool_yield_pct")
-            Sy_MPa = bolt_materials_all[bolt_material]["Sy"]
+            Sy_MPa = results['yield_Sy_MPa']
             At = results['tensile_stress_area_mm2']
             target_yield_N = preload_from_yield_percent(yield_pct, Sy_MPa, At)
 
@@ -1268,6 +1288,9 @@ try:
                     friction_condition=friction_condition, temp_assembly=temp_assembly_C,
                     temp_operating=temp_operating_C, external_load_max=ext_max_N,
                     external_load_min=ext_min_N, fatigue_criterion=fatigue_criterion,
+                    embedment_um=embedment_um, load_intro_factor=load_intro_factor,
+                    thread_engagement_length=eng_len_mm,
+                    internal_thread_material_props=internal_props, is_metric=is_metric,
                     target_proof_fos=tgt_proof, target_fatigue_fos=tgt_fat,
                     target_separation_fos=tgt_sep,
                     thread_series=BOLT_THREAD_SERIES_METRIC if is_metric else BOLT_THREAD_SERIES_IMPERIAL)

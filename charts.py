@@ -434,8 +434,11 @@ def alt_bolt_group_chart(coords: List[Tuple[float, float]], tensions: List[float
     seg_rows: List[dict] = []
     if shear_vectors and any(math.hypot(vx, vy) > 0.0 for vx, vy in shear_vectors):
         max_mag = max(math.hypot(vx, vy) for vx, vy in shear_vectors)
+        max_t = max(abs(t) for t in tensions) if tensions else 0.0
+        ref_force = max(max_mag, max_t, 1e-6)
         span = max((max(xs) - min(xs)), (max(ys) - min(ys)), 1.0)
-        factor = (0.22 * span) / max_mag if max_mag > 0 else 0.0
+        # Cap visual arrow length relative to max force in the system (tension or shear)
+        factor = (0.22 * span) / ref_force if ref_force > 0 else 0.0
         for i, (vx, vy) in enumerate(shear_vectors):
             ux, uy = vx * factor, vy * factor
             seg_rows.append({"x": xs[i], "y": ys[i], "x2": xs[i] + ux, "y2": ys[i] + uy,
